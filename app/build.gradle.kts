@@ -12,8 +12,8 @@ android {
         applicationId = "com.zepinto.resistance"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.1"
         // Screenshots are blocked by default so nobody can capture a role card. `-PallowScreenshots` lifts that for emulator test builds.
         buildConfigField("boolean", "SECURE_WINDOW", "${!project.hasProperty("allowScreenshots")}")
     }
