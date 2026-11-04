@@ -78,6 +78,7 @@ fun ResistanceApp(vm: GameViewModel = viewModel()) {
     DisposableEffect(owner) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_PAUSE || event == Lifecycle.Event.ON_STOP) vm.onPause()
+            if (event == Lifecycle.Event.ON_RESUME) vm.onResume()
         }
         owner.lifecycle.addObserver(observer)
         onDispose { owner.lifecycle.removeObserver(observer) }
@@ -108,6 +109,7 @@ fun ResistanceApp(vm: GameViewModel = viewModel()) {
                     onStart = vm::startGame,
                     onResume = vm::resume,
                     onRules = { showRules = true },
+                    onMusic = { vm.setMusic(!state.musicOn) },
                 )
                 Stage.REVEAL -> RevealScreen(state, onFlip = vm::flip, onHide = vm::hide, onNext = vm::next)
                 Stage.BOARD -> if (game != null) BoardScreen(
@@ -165,6 +167,24 @@ internal fun HelpButton(onClick: () -> Unit) {
     }
 }
 
+/** Music on or off. The sound effects stay on: they are part of the game. */
+@Composable
+internal fun MusicButton(on: Boolean, label: String, tint: Color, onClick: () -> Unit) {
+    Surface(
+        shape = CircleShape,
+        color = tint.copy(alpha = if (on) 0.2f else 0.06f),
+        modifier = Modifier
+            .size(44.dp)
+            .clip(CircleShape)
+            .semantics { contentDescription = label }
+            .clickable(onClick = onClick),
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(if (on) "🎵" else "🔇", fontSize = 20.sp)
+        }
+    }
+}
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SetupScreen(
@@ -175,6 +195,7 @@ private fun SetupScreen(
     onStart: () -> Unit,
     onResume: () -> Unit,
     onRules: () -> Unit,
+    onMusic: () -> Unit,
 ) {
     val t = LocalStrings.current
     var name by remember { mutableStateOf("") }
@@ -210,6 +231,8 @@ private fun SetupScreen(
                 Text(t.appTitle, fontSize = if (keyboard) 24.sp else 34.sp, fontWeight = FontWeight.Black)
                 if (!keyboard) Text(t.tagline, color = Palette.Lilac)
             }
+            MusicButton(state.musicOn, t.musicButton, Palette.Aqua, onMusic)
+            Spacer(Modifier.width(8.dp))
             HelpButton(onRules)
         }
         if (!keyboard) {

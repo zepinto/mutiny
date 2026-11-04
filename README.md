@@ -25,7 +25,20 @@ An Android pass-the-phone version of the social deduction game *The Resistance*,
 - No internet, no permissions, no data collected.
 - Window secure flag on by default, so roles and votes do not show up in screenshots or the recent-apps thumbnail.
 - Interrupted games can be resumed from the setup screen.
-- Synthesised sound effects, with a neutral sound for secret choices so nothing leaks through audio.
+- Sound effects and music made with ElevenLabs, with the same neutral sound for every secret choice so nothing leaks through audio.
+
+## Sound and music
+
+The sound effects and the music were generated with [ElevenLabs](https://elevenlabs.io) from the prompts in
+`tools/audio.json`. `tools/audio.py` regenerates them into `app/src/main/res/raw/` (it needs an ElevenLabs API key in
+`$ELEVENLABS_API_KEY` or `~/.config/elevenlabs/api_key`; paid generations are cached in `tools/audio-cache/`, which is
+not in git, so only changed prompts are generated again). Effects are trimmed and levelled; music is made into a
+seamless loop.
+
+Music follows the game: spy lounge in the menu and the deal, a thriller underscore at the table, a heartbeat while
+the mission cards are played, and silence for the final sting.
+
+The 🎵 button on the first screen turns the music off. The sound effects stay on: they are part of the game.
 
 ## Build
 

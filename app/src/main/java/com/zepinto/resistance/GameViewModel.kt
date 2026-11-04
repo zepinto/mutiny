@@ -3,6 +3,10 @@ package com.zepinto.resistance
 import android.app.Application
 import android.content.Context
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlin.random.Random
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,6 +40,7 @@ data class UiState(
     val lang: Lang,
     val players: List<String>,
     val hasSaved: Boolean,
+    val musicOn: Boolean = true,
     val stage: Stage = Stage.SETUP,
     val game: Game? = null,
 
@@ -66,7 +71,8 @@ data class UiState(
  */
 class GameViewModel(app: Application) : AndroidViewModel(app) {
     private val prefs = app.getSharedPreferences("resistance", Context.MODE_PRIVATE)
-    private val sfx = Sfx()
+    private val sfx = Sfx(app)
+    private val music = Music(app)
     private val approvers = HashSet<Int>()
     private val cards = ArrayList<Boolean>()
 
@@ -75,9 +81,31 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             lang = Lang.fromCode(prefs.getString(KEY_LANG, null)) ?: Lang.deviceDefault(),
             players = prefs.getString(KEY_PLAYERS, "").orEmpty().split('\n').filter { it.isNotBlank() }.distinctBy { it.lowercase() },
             hasSaved = loadSaved() != null,
+            musicOn = prefs.getBoolean(KEY_MUSIC, true),
         )
     )
     val state: StateFlow<UiState> = _state.asStateFlow()
+
+    init {
+        music.setEnabled(_state.value.musicOn)
+        // the music follows the game: the lobby tune, the table, the missions, and silence for the final sting
+        viewModelScope.launch {
+            _state.map { trackFor(it.stage) }.distinctUntilChanged().collect { music.play(it) }
+        }
+    }
+
+    private fun trackFor(stage: Stage): Music.Track? = when (stage) {
+        Stage.SETUP, Stage.REVEAL -> Music.Track.LOBBY
+        Stage.BOARD, Stage.PICK_TEAM, Stage.VOTE_PASS, Stage.VOTE_CHOOSE, Stage.VOTE_RESULT -> Music.Track.TABLE
+        Stage.MISSION_PASS, Stage.MISSION_CHOOSE, Stage.MISSION_RESULT -> Music.Track.MISSION
+        Stage.GAME_OVER -> null
+    }
+
+    fun setMusic(on: Boolean) {
+        _state.update { it.copy(musicOn = on) }
+        music.setEnabled(on)
+        prefs.edit().putBoolean(KEY_MUSIC, on).apply()
+    }
 
     // ---- setup ----
 
@@ -209,7 +237,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         val yes = approvers.toSet()
         val next = Rules.vote(game, s.team, yes)
         val approved = Rules.isApproved(game.n, yes)
-        sfx.play(if (approved) Cue.GOOD else Cue.BAD)
+        sfx.play(if (approved) Cue.APPROVED else Cue.REJECTED)
         _state.update { it.copy(game = next, voteReveal = VoteReveal(s.team, yes, approved), stage = Stage.VOTE_RESULT, ballotPos = pos) }
     }
 
@@ -250,7 +278,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
 
     /** The mission cards are turned over. */
     fun revealMissionSound() {
-        _state.value.missionReveal?.let { sfx.play(if (it.result == MissionResult.SUCCESS) Cue.GOOD else Cue.BAD) }
+        _state.value.missionReveal?.let { sfx.play(if (it.result == MissionResult.SUCCESS) Cue.SUCCESS else Cue.FAIL) }
     }
 
     fun afterMission() {
@@ -270,6 +298,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
 
     /** The app left the foreground: nothing secret may stay on screen. */
     fun onPause() {
+        music.pause()
         when (_state.value.stage) {
             Stage.REVEAL -> hide()
             Stage.VOTE_CHOOSE -> _state.update { it.copy(stage = Stage.VOTE_PASS) }
@@ -277,6 +306,8 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             else -> Unit
         }
     }
+
+    fun onResume() = music.resume()
 
     // ---- helpers ----
 
@@ -309,6 +340,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
 
     override fun onCleared() {
         sfx.release()
+        music.release()
     }
 
     companion object {
@@ -316,5 +348,6 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         private const val KEY_LANG = "lang"
         private const val KEY_PLAYERS = "players"
         private const val KEY_GAME = "game"
+        private const val KEY_MUSIC = "music"
     }
 }

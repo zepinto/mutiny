@@ -130,6 +130,7 @@ data class Strings(
     val lastRejectWarning: String,
     val back: String,
     val rulesButton: String,
+    val musicButton: String,
     val rulesTitle: String,
     val rulesSections: List<RulesSection>,
 )
@@ -226,6 +227,7 @@ val English = Strings(
     lastRejectWarning = "Last chance: if this team is rejected, the Spies win.",
     back = "Back",
     rulesButton = "Rules",
+    musicButton = "Music on or off",
     rulesTitle = "Rules",
     rulesSections = listOf(
         RulesSection("🎯", "The goal", listOf(
@@ -356,6 +358,7 @@ val Portuguese = Strings(
     lastRejectWarning = "Última oportunidade: se esta equipa for rejeitada, os Espiões ganham.",
     back = "Voltar",
     rulesButton = "Regras",
+    musicButton = "Ligar ou desligar a música",
     rulesTitle = "Regras",
     rulesSections = listOf(
         RulesSection("🎯", "O objetivo", listOf(
@@ -486,6 +489,7 @@ val Spanish = Strings(
     lastRejectWarning = "Última oportunidad: si este equipo se rechaza, ganan los Espías.",
     back = "Volver",
     rulesButton = "Reglas",
+    musicButton = "Activar o desactivar la música",
     rulesTitle = "Reglas",
     rulesSections = listOf(
         RulesSection("🎯", "El objetivo", listOf(
