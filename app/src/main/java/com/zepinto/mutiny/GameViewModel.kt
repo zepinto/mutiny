@@ -1,4 +1,4 @@
-package com.zepinto.resistance
+package com.zepinto.mutiny
 
 import android.app.Application
 import android.content.Context
@@ -17,24 +17,24 @@ enum class Stage {
     SETUP,
     /** Role cards, one face-down card at a time. */
     REVEAL,
-    /** The mission track, the leader, and the way into the next round. */
+    /** The voyage track, the captain, and the way into the next round. */
     BOARD,
     PICK_TEAM,
     /** The phone is handed to the next voter; nothing secret is on screen. */
     VOTE_PASS,
     VOTE_CHOOSE,
     VOTE_RESULT,
-    MISSION_PASS,
-    MISSION_CHOOSE,
-    MISSION_RESULT,
+    VOYAGE_PASS,
+    VOYAGE_CHOOSE,
+    VOYAGE_RESULT,
     GAME_OVER,
 }
 
 /** All the votes of a team, shown together once the last player has voted. */
 data class VoteReveal(val team: List<Int>, val approvers: Set<Int>, val approved: Boolean)
 
-/** The shuffled mission cards (true = fail) and how the mission ended. */
-data class MissionReveal(val cards: List<Boolean>, val fails: Int, val needed: Int, val result: MissionResult)
+/** The shuffled voyage cards (true = fail) and how the voyage ended. */
+data class VoyageReveal(val cards: List<Boolean>, val fails: Int, val needed: Int, val result: VoyageResult)
 
 data class UiState(
     val lang: Lang,
@@ -50,14 +50,14 @@ data class UiState(
     val cardUp: Boolean = false,
     val seen: Set<Int> = emptySet(),
 
-    // the team being picked, and who is passing the phone round (voters, then the mission team)
+    // the team being picked, and who is passing the phone round (voters, then the voyage team)
     val selection: Set<Int> = emptySet(),
     val team: List<Int> = emptyList(),
     val ballot: List<Int> = emptyList(),
     val ballotPos: Int = 0,
 
     val voteReveal: VoteReveal? = null,
-    val missionReveal: MissionReveal? = null,
+    val voyageReveal: VoyageReveal? = null,
 ) {
     val currentCard get() = order[position]
     val onLastCard get() = position == order.lastIndex
@@ -65,12 +65,12 @@ data class UiState(
 }
 
 /**
- * The whole game on one phone. The secret choices (each vote, each mission card) are kept here and never put
+ * The whole game on one phone. The secret choices (each vote, each voyage card) are kept here and never put
  * in [UiState] until the last player has chosen, so nothing secret is ever on screen or in the state while the
  * phone is being passed round.
  */
 class GameViewModel(app: Application) : AndroidViewModel(app) {
-    private val prefs = app.getSharedPreferences("resistance", Context.MODE_PRIVATE)
+    private val prefs = app.getSharedPreferences("mutiny", Context.MODE_PRIVATE)
     private val sfx = Sfx(app)
     private val music = Music(app)
     private val approvers = HashSet<Int>()
@@ -88,7 +88,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
 
     init {
         music.setEnabled(_state.value.musicOn)
-        // the music follows the game: the lobby tune, the table, the missions, and silence for the final sting
+        // the music follows the game: the lobby tune, the table, the voyages, and silence for the final sting
         viewModelScope.launch {
             _state.map { trackFor(it.stage) }.distinctUntilChanged().collect { music.play(it) }
         }
@@ -97,7 +97,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     private fun trackFor(stage: Stage): Music.Track? = when (stage) {
         Stage.SETUP, Stage.REVEAL -> Music.Track.LOBBY
         Stage.BOARD, Stage.PICK_TEAM, Stage.VOTE_PASS, Stage.VOTE_CHOOSE, Stage.VOTE_RESULT -> Music.Track.TABLE
-        Stage.MISSION_PASS, Stage.MISSION_CHOOSE, Stage.MISSION_RESULT -> Music.Track.MISSION
+        Stage.VOYAGE_PASS, Stage.VOYAGE_CHOOSE, Stage.VOYAGE_RESULT -> Music.Track.VOYAGE
         Stage.GAME_OVER -> null
     }
 
@@ -137,7 +137,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             it.copy(
                 stage = Stage.REVEAL, game = game, hasSaved = false,
                 order = players.indices.shuffled(), position = 0, cardUp = false, seen = emptySet(),
-                selection = emptySet(), team = emptyList(), voteReveal = null, missionReveal = null,
+                selection = emptySet(), team = emptyList(), voteReveal = null, voyageReveal = null,
             )
         }
     }
@@ -197,7 +197,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         }
     }
 
-    /** The leader has picked the team: the secret vote begins with the leader and goes round the table. */
+    /** The captain has picked the team: the secret vote begins with the captain and goes round the table. */
     fun proposeTeam() {
         val s = _state.value
         val game = s.game ?: return
@@ -207,7 +207,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             it.copy(
                 stage = Stage.VOTE_PASS,
                 team = it.selection.sorted(),
-                ballot = (0 until game.n).map { k -> (game.leader + k) % game.n },
+                ballot = (0 until game.n).map { k -> (game.captain + k) % game.n },
                 ballotPos = 0,
             )
         }
@@ -217,7 +217,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     fun ready() {
         when (_state.value.stage) {
             Stage.VOTE_PASS -> _state.update { it.copy(stage = Stage.VOTE_CHOOSE) }
-            Stage.MISSION_PASS -> _state.update { it.copy(stage = Stage.MISSION_CHOOSE) }
+            Stage.VOYAGE_PASS -> _state.update { it.copy(stage = Stage.VOYAGE_CHOOSE) }
             else -> Unit
         }
     }
@@ -241,7 +241,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         _state.update { it.copy(game = next, voteReveal = VoteReveal(s.team, yes, approved), stage = Stage.VOTE_RESULT, ballotPos = pos) }
     }
 
-    /** Leave the vote result: on to the mission, to the next leader, or to the end of the game. */
+    /** Leave the vote result: on to the voyage, to the next captain, or to the end of the game. */
     fun afterVote() {
         val game = _state.value.game ?: return
         if (_state.value.stage != Stage.VOTE_RESULT) return
@@ -249,7 +249,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
             game.over -> enterGameOver()
             game.pendingTeam != null -> {
                 cards.clear()
-                _state.update { it.copy(stage = Stage.MISSION_PASS, ballot = game.pendingTeam, ballotPos = 0) }
+                _state.update { it.copy(stage = Stage.VOYAGE_PASS, ballot = game.pendingTeam, ballotPos = 0) }
             }
             else -> enterBoard()
         }
@@ -259,31 +259,31 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         val s = _state.value
         val game = s.game ?: return
         val player = s.currentPlayer ?: return
-        if (s.stage != Stage.MISSION_CHOOSE) return
+        if (s.stage != Stage.VOYAGE_CHOOSE) return
         cards += Rules.playsFail(game.roles[player], wantsFail)
         sfx.play(Cue.BLIP)
         val pos = s.ballotPos + 1
         if (pos < s.ballot.size) {
-            _state.update { it.copy(ballotPos = pos, stage = Stage.MISSION_PASS) }
+            _state.update { it.copy(ballotPos = pos, stage = Stage.VOYAGE_PASS) }
             return
         }
         val fails = cards.count { it }
         val needed = game.failsNeeded
-        val next = Rules.finishMission(game, fails)
+        val next = Rules.finishVoyage(game, fails)
         val result = next.history.last().result ?: return
         _state.update {
-            it.copy(game = next, missionReveal = MissionReveal(cards.shuffled(), fails, needed, result), stage = Stage.MISSION_RESULT, ballotPos = pos)
+            it.copy(game = next, voyageReveal = VoyageReveal(cards.shuffled(), fails, needed, result), stage = Stage.VOYAGE_RESULT, ballotPos = pos)
         }
     }
 
-    /** The mission cards are turned over. */
-    fun revealMissionSound() {
-        _state.value.missionReveal?.let { sfx.play(if (it.result == MissionResult.SUCCESS) Cue.SUCCESS else Cue.FAIL) }
+    /** The voyage cards are turned over. */
+    fun revealVoyageSound() {
+        _state.value.voyageReveal?.let { sfx.play(if (it.result == VoyageResult.SUCCESS) Cue.SUCCESS else Cue.FAIL) }
     }
 
-    fun afterMission() {
+    fun afterVoyage() {
         val game = _state.value.game ?: return
-        if (_state.value.stage != Stage.MISSION_RESULT) return
+        if (_state.value.stage != Stage.VOYAGE_RESULT) return
         if (game.over) enterGameOver() else enterBoard()
     }
 
@@ -302,7 +302,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
         when (_state.value.stage) {
             Stage.REVEAL -> hide()
             Stage.VOTE_CHOOSE -> _state.update { it.copy(stage = Stage.VOTE_PASS) }
-            Stage.MISSION_CHOOSE -> _state.update { it.copy(stage = Stage.MISSION_PASS) }
+            Stage.VOYAGE_CHOOSE -> _state.update { it.copy(stage = Stage.VOYAGE_PASS) }
             else -> Unit
         }
     }
@@ -320,7 +320,7 @@ class GameViewModel(app: Application) : AndroidViewModel(app) {
     private fun enterGameOver() {
         val game = _state.value.game ?: return
         clearSaved()
-        sfx.play(if (game.winner == Side.RESISTANCE) Cue.WIN else Cue.LOSE)
+        sfx.play(if (game.winner == Side.LOYAL) Cue.WIN else Cue.LOSE)
         _state.update { it.copy(stage = Stage.GAME_OVER, hasSaved = false) }
     }
 

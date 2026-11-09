@@ -1,4 +1,4 @@
-package com.zepinto.resistance
+package com.zepinto.mutiny
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -23,13 +23,13 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathFillType
-import androidx.compose.ui.graphics.drawscope.translate
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -71,34 +71,45 @@ fun Avatar(name: String, index: Int, size: Dp = 44.dp) {
     }
 }
 
-/** The game's mark: a domino mask, bobbing gently. */
+/** The game's mark: a pirate flag with a skull and crossbones, waving gently. */
 @Composable
-fun Mask(modifier: Modifier = Modifier, bob: Boolean = true, color: Color = Color.White, hole: Color = Palette.Night) {
-    val transition = rememberInfiniteTransition(label = "mask")
-    val lift by transition.animateFloat(
+fun Flag(modifier: Modifier = Modifier, wave: Boolean = true, color: Color = Color.White, hole: Color = Palette.Night) {
+    val transition = rememberInfiniteTransition(label = "flag")
+    val phase by transition.animateFloat(
         initialValue = 0f,
-        targetValue = if (bob) 1f else 0f,
+        targetValue = if (wave) 1f else 0f,
         animationSpec = infiniteRepeatable(tween(1500, easing = FastOutSlowInEasing), RepeatMode.Reverse),
-        label = "lift",
+        label = "wave",
     )
     Canvas(modifier) {
         val s = size.minDimension
-        translate(top = -lift * s * 0.04f) {
-            val body = Path().apply {
-                fillType = PathFillType.EvenOdd
-                moveTo(s * 0.05f, s * 0.46f)
-                cubicTo(s * 0.05f, s * 0.2f, s * 0.3f, s * 0.12f, s * 0.5f, s * 0.26f)
-                cubicTo(s * 0.7f, s * 0.12f, s * 0.95f, s * 0.2f, s * 0.95f, s * 0.46f)
-                cubicTo(s * 0.95f, s * 0.7f, s * 0.8f, s * 0.86f, s * 0.64f, s * 0.8f)
-                cubicTo(s * 0.57f, s * 0.77f, s * 0.55f, s * 0.68f, s * 0.5f, s * 0.68f)
-                cubicTo(s * 0.45f, s * 0.68f, s * 0.43f, s * 0.77f, s * 0.36f, s * 0.8f)
-                cubicTo(s * 0.2f, s * 0.86f, s * 0.05f, s * 0.7f, s * 0.05f, s * 0.46f)
-                close()
-            }
-            drawPath(body, color)
-            drawOval(hole, Offset(s * 0.17f, s * 0.38f), Size(s * 0.26f, s * 0.2f))
-            drawOval(hole, Offset(s * 0.57f, s * 0.38f), Size(s * 0.26f, s * 0.2f))
+        val w = (phase - 0.5f) * 0.06f * s
+        // the pole and its knob
+        drawRoundRect(color, Offset(s * 0.12f, s * 0.06f), Size(s * 0.05f, s * 0.9f), CornerRadius(s * 0.025f))
+        drawCircle(color, s * 0.045f, Offset(s * 0.145f, s * 0.06f))
+        // the cloth
+        val cloth = Path().apply {
+            moveTo(s * 0.17f, s * 0.12f)
+            cubicTo(s * 0.40f, s * 0.04f + w, s * 0.62f, s * 0.22f - w, s * 0.93f, s * 0.13f)
+            lineTo(s * 0.93f, s * 0.61f)
+            cubicTo(s * 0.62f, s * 0.70f - w, s * 0.40f, s * 0.52f + w, s * 0.17f, s * 0.60f)
+            close()
         }
+        drawPath(cloth, color)
+        // crossbones under the skull
+        val bone = s * 0.05f
+        listOf(Offset(0.40f, 0.23f) to Offset(0.70f, 0.50f), Offset(0.70f, 0.23f) to Offset(0.40f, 0.50f)).forEach { (a, b) ->
+            drawLine(hole, Offset(s * a.x, s * a.y + w * 0.3f), Offset(s * b.x, s * b.y + w * 0.3f), bone, StrokeCap.Round)
+            drawCircle(hole, bone * 0.7f, Offset(s * a.x, s * a.y + w * 0.3f))
+            drawCircle(hole, bone * 0.7f, Offset(s * b.x, s * b.y + w * 0.3f))
+        }
+        // the skull
+        val cy = s * 0.32f + w * 0.3f
+        drawCircle(hole, s * 0.115f, Offset(s * 0.55f, cy))
+        drawRoundRect(hole, Offset(s * 0.48f, cy + s * 0.04f), Size(s * 0.14f, s * 0.11f), CornerRadius(s * 0.03f))
+        drawCircle(color, s * 0.032f, Offset(s * 0.505f, cy + s * 0.005f))
+        drawCircle(color, s * 0.032f, Offset(s * 0.595f, cy + s * 0.005f))
+        drawCircle(color, s * 0.014f, Offset(s * 0.55f, cy + s * 0.07f))
     }
 }
 

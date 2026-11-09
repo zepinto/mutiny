@@ -1,4 +1,4 @@
-package com.zepinto.resistance
+package com.zepinto.mutiny
 
 import android.os.SystemClock
 import androidx.compose.foundation.background
@@ -51,13 +51,13 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlin.random.Random
 
-/** The five missions: the team size to play, then a tick or a cross once decided. The current one is ringed. */
+/** The five voyages: the team size to play, then a tick or a cross once decided. The current one is ringed. */
 @Composable
-internal fun MissionTrack(game: Game, modifier: Modifier = Modifier) {
+internal fun VoyageTrack(game: Game, modifier: Modifier = Modifier) {
     Row(modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        for (m in 0 until Rules.MISSIONS) {
+        for (m in 0 until Rules.VOYAGES) {
             val result = game.results[m]
-            val current = !game.over && m == game.mission
+            val current = !game.over && m == game.voyage
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Box(
                     Modifier
@@ -65,8 +65,8 @@ internal fun MissionTrack(game: Game, modifier: Modifier = Modifier) {
                         .clip(CircleShape)
                         .background(
                             when (result) {
-                                MissionResult.SUCCESS -> Palette.Blue
-                                MissionResult.FAIL -> Palette.Red
+                                VoyageResult.SUCCESS -> Palette.Blue
+                                VoyageResult.FAIL -> Palette.Red
                                 null -> Color.White.copy(alpha = 0.1f)
                             }
                         )
@@ -75,15 +75,15 @@ internal fun MissionTrack(game: Game, modifier: Modifier = Modifier) {
                 ) {
                     Text(
                         when (result) {
-                            MissionResult.SUCCESS -> "✓"
-                            MissionResult.FAIL -> "✕"
+                            VoyageResult.SUCCESS -> "✓"
+                            VoyageResult.FAIL -> "✕"
                             null -> "${Rules.teamSize(game.n, m)}"
                         },
                         fontSize = 22.sp,
                         fontWeight = FontWeight.Black,
                     )
                 }
-                // "x2": this mission needs two fail cards
+                // "x2": this voyage needs two fail cards
                 Text(if (Rules.failsNeeded(game.n, m) == 2) "×2" else " ", fontSize = 12.sp, color = Palette.Gold, fontWeight = FontWeight.Bold)
             }
         }
@@ -105,17 +105,17 @@ private fun RejectTrack(rejects: Int) {
 }
 
 @Composable
-private fun PlayerTag(name: String, index: Int, leader: Boolean) {
+private fun PlayerTag(name: String, index: Int, captain: Boolean) {
     Surface(
         shape = Pill,
         color = Color.White.copy(alpha = 0.08f),
-        modifier = Modifier.then(if (leader) Modifier.border(2.dp, Palette.Gold, Pill) else Modifier),
+        modifier = Modifier.then(if (captain) Modifier.border(2.dp, Palette.Gold, Pill) else Modifier),
     ) {
         Row(Modifier.padding(start = 6.dp, end = 12.dp, top = 5.dp, bottom = 5.dp), verticalAlignment = Alignment.CenterVertically) {
             Avatar(name, index, size = 28.dp)
             Spacer(Modifier.width(8.dp))
             Text(name, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1)
-            if (leader) Text(" 👑", fontSize = 14.sp)
+            if (captain) Text(" 🧭", fontSize = 14.sp)
         }
     }
 }
@@ -127,7 +127,7 @@ private fun PlayerTag(name: String, index: Int, leader: Boolean) {
 internal fun BoardScreen(state: UiState, onChooseTeam: () -> Unit, onHistory: () -> Unit, onRules: () -> Unit) {
     val t = LocalStrings.current
     val game = state.game ?: return
-    val leaderName = game.players[game.leader]
+    val captainName = game.players[game.captain]
     Column(
         Modifier
             .fillMaxSize()
@@ -143,8 +143,8 @@ internal fun BoardScreen(state: UiState, onChooseTeam: () -> Unit, onHistory: ()
             Spacer(Modifier.weight(1f))
             HelpButton(onRules)
         }
-        Text(t.missionOf(game.mission + 1), fontSize = 32.sp, fontWeight = FontWeight.Black)
-        MissionTrack(game)
+        Text(t.voyageOf(game.voyage + 1), fontSize = 32.sp, fontWeight = FontWeight.Black)
+        VoyageTrack(game)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             RejectTrack(game.rejects)
             Text(t.rejectedProposals(game.rejects), fontSize = 13.sp, color = Color.White.copy(alpha = 0.75f))
@@ -158,10 +158,10 @@ internal fun BoardScreen(state: UiState, onChooseTeam: () -> Unit, onHistory: ()
             modifier = Modifier.fillMaxWidth().border(2.dp, Palette.Gold, Soft),
         ) {
             Row(Modifier.padding(16.dp), verticalAlignment = Alignment.CenterVertically) {
-                Avatar(leaderName, game.leader, size = 56.dp)
+                Avatar(captainName, game.captain, size = 56.dp)
                 Spacer(Modifier.width(14.dp))
                 Column {
-                    Text("👑 ${t.leaderIs(leaderName)}", fontSize = 20.sp, fontWeight = FontWeight.Black)
+                    Text("🧭 ${t.captainIs(captainName)}", fontSize = 20.sp, fontWeight = FontWeight.Black)
                     Text(t.chooseTeamHint(game.teamSize), color = Color.White.copy(alpha = 0.85f))
                     if (game.failsNeeded == 2) Text(t.failsNeeded(2), color = Palette.Gold, fontWeight = FontWeight.Bold, fontSize = 13.sp)
                 }
@@ -172,7 +172,7 @@ internal fun BoardScreen(state: UiState, onChooseTeam: () -> Unit, onHistory: ()
             Text("📜 ${t.history}", color = Palette.Aqua, fontWeight = FontWeight.Bold)
         }
         FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            game.players.forEachIndexed { i, p -> PlayerTag(p, i, leader = i == game.leader) }
+            game.players.forEachIndexed { i, p -> PlayerTag(p, i, captain = i == game.captain) }
         }
     }
 }
@@ -192,7 +192,7 @@ internal fun PickTeamScreen(state: UiState, onToggle: (Int) -> Unit, onPropose: 
     ) {
         TextButton(onClick = onBack) { Text("← ${t.back}", color = Palette.Aqua, fontWeight = FontWeight.Bold, fontSize = 16.sp) }
         Text(t.pickTitle, fontSize = 30.sp, fontWeight = FontWeight.Black)
-        Text("👑 ${t.leaderIs(game.players[game.leader])} · ${t.chooseTeamHint(game.teamSize)}", color = Palette.Lilac)
+        Text("🧭 ${t.captainIs(game.players[game.captain])} · ${t.chooseTeamHint(game.teamSize)}", color = Palette.Lilac)
         Chip(t.pickCount(state.selection.size, game.teamSize), Palette.Gold)
         if (game.rejects == Rules.MAX_REJECTS - 1) Text("⚠️ ${t.lastRejectWarning}", color = Palette.Red, fontWeight = FontWeight.Bold, fontSize = 14.sp)
         Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -211,7 +211,7 @@ internal fun PickTeamScreen(state: UiState, onToggle: (Int) -> Unit, onPropose: 
                         Avatar(p, i)
                         Spacer(Modifier.width(12.dp))
                         Text(p, fontSize = 19.sp, fontWeight = FontWeight.SemiBold, modifier = Modifier.weight(1f))
-                        if (i == game.leader) Text("👑", fontSize = 20.sp)
+                        if (i == game.captain) Text("🧭", fontSize = 20.sp)
                         if (picked) Text("  ✅", fontSize = 22.sp)
                     }
                 }
@@ -221,7 +221,7 @@ internal fun PickTeamScreen(state: UiState, onToggle: (Int) -> Unit, onPropose: 
     }
 }
 
-// ---------------------------------------------------------------- the secret vote and the mission cards
+// ---------------------------------------------------------------- the secret vote and the voyage cards
 
 /** Nothing secret on screen: just whose turn it is to take the phone. */
 @Composable
@@ -242,7 +242,7 @@ internal fun PassScreen(state: UiState, voting: Boolean, onReady: () -> Unit) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Chip(if (voting) "🗳️ ${t.voteTitle}" else "🃏 ${t.missionOf(game.mission + 1)}", Palette.Gold)
+        Chip(if (voting) "🗳️ ${t.voteTitle}" else "🃏 ${t.voyageOf(game.voyage + 1)}", Palette.Gold)
         Spacer(Modifier.height(28.dp))
         Avatar(name, player, size = 110.dp)
         Spacer(Modifier.height(18.dp))
@@ -276,12 +276,12 @@ internal fun ChoiceScreen(state: UiState, voting: Boolean, onChoose: (Boolean) -
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Chip(if (voting) "🗳️ ${t.voteTitle}" else "🃏 ${t.missionOf(game.mission + 1)}", Palette.Gold)
+        Chip(if (voting) "🗳️ ${t.voteTitle}" else "🃏 ${t.voyageOf(game.voyage + 1)}", Palette.Gold)
         Spacer(Modifier.height(16.dp))
         Avatar(name, player, size = 72.dp)
         Spacer(Modifier.height(10.dp))
         Text(
-            if (voting) t.voteQuestion(name) else t.missionQuestion(name),
+            if (voting) t.voteQuestion(name) else t.voyageQuestion(name),
             fontSize = 24.sp,
             fontWeight = FontWeight.Black,
             textAlign = TextAlign.Center,
@@ -293,7 +293,7 @@ internal fun ChoiceScreen(state: UiState, voting: Boolean, onChoose: (Boolean) -
         Spacer(Modifier.height(22.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(14.dp), modifier = Modifier.fillMaxWidth()) {
             val options = listOf(
-                Option(if (voting) "👍" else "✅", if (voting) t.approve else t.success, if (voting) Palette.Mint else Palette.Blue, 0),
+                Option(if (voting) "👍" else "⚓", if (voting) t.approve else t.success, if (voting) Palette.Mint else Palette.Blue, 0),
                 Option(if (voting) "👎" else "💥", if (voting) t.reject else t.fail, Palette.Red, 1),
             ).let { if (swapped) it.reversed() else it }
             options.forEach { o ->
@@ -391,14 +391,14 @@ private fun VoteColumn(title: String, voters: List<Int>, game: Game, color: Colo
     }
 }
 
-/** The shuffled mission cards, face down until the group is ready, then all turned over together. */
+/** The shuffled voyage cards, face down until the group is ready, then all turned over together. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun MissionResultScreen(state: UiState, onReveal: () -> Unit, onContinue: () -> Unit) {
+internal fun VoyageResultScreen(state: UiState, onReveal: () -> Unit, onContinue: () -> Unit) {
     val t = LocalStrings.current
     val game = state.game ?: return
-    val mission = state.missionReveal ?: return
-    val played = game.history.last().mission
+    val voyage = state.voyageReveal ?: return
+    val played = game.history.last().voyage
     var revealed by rememberSaveable(game.history.size) { mutableStateOf(false) }
     Column(
         Modifier
@@ -411,10 +411,10 @@ internal fun MissionResultScreen(state: UiState, onReveal: () -> Unit, onContinu
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Chip("🃏 ${t.missionOf(played + 1)}", Palette.Gold)
+        Chip("🃏 ${t.voyageOf(played + 1)}", Palette.Gold)
         Spacer(Modifier.height(24.dp))
         FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterHorizontally), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            mission.cards.forEach { fail ->
+            voyage.cards.forEach { fail ->
                 Surface(
                     shape = RoundedCornerShape(16.dp),
                     color = when {
@@ -425,7 +425,7 @@ internal fun MissionResultScreen(state: UiState, onReveal: () -> Unit, onContinu
                     modifier = Modifier.size(width = 70.dp, height = 100.dp).border(2.dp, Color.White.copy(alpha = 0.25f), RoundedCornerShape(16.dp)),
                 ) {
                     Box(contentAlignment = Alignment.Center) {
-                        if (!revealed) Mask(Modifier.size(44.dp), bob = false, color = Color.White.copy(alpha = 0.85f)) else Text(if (fail) "💥" else "✅", fontSize = 34.sp)
+                        if (!revealed) Flag(Modifier.size(44.dp), wave = false, color = Color.White.copy(alpha = 0.85f)) else Text(if (fail) "💥" else "⚓", fontSize = 34.sp)
                     }
                 }
             }
@@ -436,10 +436,10 @@ internal fun MissionResultScreen(state: UiState, onReveal: () -> Unit, onContinu
             Spacer(Modifier.height(20.dp))
             PillButton(t.revealCards, { revealed = true; onReveal() }, Modifier.fillMaxWidth())
         } else {
-            val ok = mission.result == MissionResult.SUCCESS
+            val ok = voyage.result == VoyageResult.SUCCESS
             Surface(shape = Soft, color = if (ok) Palette.Blue else Palette.Red, modifier = Modifier.fillMaxWidth()) {
                 Text(
-                    if (ok) "🎉 ${t.missionSucceeded}" else "💥 ${t.missionFailed}",
+                    if (ok) "🎉 ${t.voyageSucceeded}" else "💥 ${t.voyageFailed}",
                     fontSize = 26.sp,
                     fontWeight = FontWeight.Black,
                     textAlign = TextAlign.Center,
@@ -447,7 +447,7 @@ internal fun MissionResultScreen(state: UiState, onReveal: () -> Unit, onContinu
                 )
             }
             Spacer(Modifier.height(8.dp))
-            Text(t.failsLine(mission.fails, mission.needed), color = Color.White.copy(alpha = 0.85f), textAlign = TextAlign.Center)
+            Text(t.failsLine(voyage.fails, voyage.needed), color = Color.White.copy(alpha = 0.85f), textAlign = TextAlign.Center)
             Spacer(Modifier.height(20.dp))
             PillButton(t.continueLabel, onContinue, Modifier.fillMaxWidth())
         }
@@ -460,7 +460,7 @@ internal fun MissionResultScreen(state: UiState, onReveal: () -> Unit, onContinu
 internal fun GameOverScreen(state: UiState, onNewGame: () -> Unit, onSetup: () -> Unit, onHistory: () -> Unit) {
     val t = LocalStrings.current
     val game = state.game ?: return
-    val resistance = game.winner == Side.RESISTANCE
+    val loyal = game.winner == Side.LOYAL
     Column(
         Modifier
             .fillMaxSize()
@@ -472,11 +472,11 @@ internal fun GameOverScreen(state: UiState, onNewGame: () -> Unit, onSetup: () -
         verticalArrangement = Arrangement.spacedBy(14.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(if (resistance) "✊" else "🕵️", fontSize = 64.sp)
-        Surface(shape = Soft, color = if (resistance) Palette.Blue else Palette.Red, modifier = Modifier.fillMaxWidth()) {
+        Text(if (loyal) "⚓" else "🏴‍☠️", fontSize = 64.sp)
+        Surface(shape = Soft, color = if (loyal) Palette.Blue else Palette.Red, modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(18.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    if (resistance) t.resistanceWins else t.spiesWin,
+                    if (loyal) t.loyalWins else t.mutineersWin,
                     fontSize = 28.sp,
                     fontWeight = FontWeight.Black,
                     textAlign = TextAlign.Center,
@@ -484,7 +484,7 @@ internal fun GameOverScreen(state: UiState, onNewGame: () -> Unit, onSetup: () -
                 Text(
                     when {
                         game.winReason == WinReason.REJECTIONS -> t.winRejections
-                        resistance -> t.winSuccess
+                        loyal -> t.winSuccess
                         else -> t.winFail
                     },
                     color = Color.White.copy(alpha = 0.9f),
@@ -492,16 +492,16 @@ internal fun GameOverScreen(state: UiState, onNewGame: () -> Unit, onSetup: () -
                 )
             }
         }
-        MissionTrack(game)
+        VoyageTrack(game)
         Text(t.rolesTitle, fontWeight = FontWeight.Black, fontSize = 18.sp, modifier = Modifier.align(Alignment.Start))
         game.players.forEachIndexed { i, p ->
-            val spy = game.roles[i] == Role.SPY
+            val mutineer = game.roles[i] == Role.MUTINEER
             Surface(shape = Soft, color = Color.White.copy(alpha = 0.08f), modifier = Modifier.fillMaxWidth()) {
                 Row(Modifier.padding(10.dp), verticalAlignment = Alignment.CenterVertically) {
                     Avatar(p, i, size = 36.dp)
                     Spacer(Modifier.width(12.dp))
                     Text(p, fontWeight = FontWeight.Bold, fontSize = 17.sp, modifier = Modifier.weight(1f))
-                    Chip(if (spy) "🕵️ ${t.roleSpy}" else "✊ ${t.roleResistance}", if (spy) Palette.Red else Palette.Blue)
+                    Chip(if (mutineer) "🏴‍☠️ ${t.roleMutineer}" else "⚓ ${t.roleLoyal}", if (mutineer) Palette.Red else Palette.Blue)
                 }
             }
         }
@@ -511,7 +511,7 @@ internal fun GameOverScreen(state: UiState, onNewGame: () -> Unit, onSetup: () -
     }
 }
 
-/** Every team proposed so far: who led, who was on it, how each player voted and how the mission went. */
+/** Every team proposed so far: who led, who was on it, how each player voted and how the voyage went. */
 @Composable
 internal fun HistoryDialog(game: Game, onClose: () -> Unit) {
     val t = LocalStrings.current
@@ -526,15 +526,15 @@ internal fun HistoryDialog(game: Game, onClose: () -> Unit) {
                     items(game.history.asReversed()) { r ->
                         val outcome = when {
                             !r.approved -> "❌ ${t.voteRejected}"
-                            r.result == MissionResult.SUCCESS -> "✅ ${t.missionSucceeded}"
-                            r.result == MissionResult.FAIL -> "💥 ${t.missionFailed}"
+                            r.result == VoyageResult.SUCCESS -> "✅ ${t.voyageSucceeded}"
+                            r.result == VoyageResult.FAIL -> "💥 ${t.voyageFailed}"
                             else -> "…"
                         }
                         val yes = game.players.indices.filter { it in r.approvers }.joinToString(", ") { game.players[it] }.ifEmpty { t.nobody }
                         val no = game.players.indices.filter { it !in r.approvers }.joinToString(", ") { game.players[it] }.ifEmpty { t.nobody }
                         Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(t.historyRound(r.mission + 1, r.team.joinToString(", ") { game.players[it] }, outcome), fontWeight = FontWeight.Bold)
-                            Text("👑 ${game.players[r.leader]}", fontSize = 13.sp)
+                            Text(t.historyRound(r.voyage + 1, r.team.joinToString(", ") { game.players[it] }, outcome), fontWeight = FontWeight.Bold)
+                            Text("🧭 ${game.players[r.captain]}", fontSize = 13.sp)
                             Text("👍 $yes", fontSize = 13.sp)
                             Text("👎 $no", fontSize = 13.sp)
                         }

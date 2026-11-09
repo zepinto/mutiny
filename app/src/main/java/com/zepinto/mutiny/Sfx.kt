@@ -1,4 +1,4 @@
-package com.zepinto.resistance
+package com.zepinto.mutiny
 
 import android.animation.Animator
 import android.animation.AnimatorListenerAdapter
@@ -11,7 +11,7 @@ import android.media.SoundPool
 enum class Cue(val res: Int) {
     FLIP(R.raw.sfx_flip),
     WARN(R.raw.sfx_warn),
-    /** Every secret vote and mission card, whatever was chosen: the same sound, so nothing leaks. */
+    /** Every secret vote and voyage card, whatever was chosen: the same sound, so nothing leaks. */
     BLIP(R.raw.sfx_blip),
     APPROVED(R.raw.sfx_approved),
     REJECTED(R.raw.sfx_rejected),
@@ -41,7 +41,7 @@ class Sfx(context: Context) {
 
 /** The background music: one looping track at a time, faded in and out when it changes. */
 class Music(private val context: Context) {
-    enum class Track(val res: Int) { LOBBY(R.raw.music_lobby), TABLE(R.raw.music_table), MISSION(R.raw.music_mission) }
+    enum class Track(val res: Int) { LOBBY(R.raw.music_lobby), TABLE(R.raw.music_table), VOYAGE(R.raw.music_voyage) }
 
     private var player: MediaPlayer? = null
     private var current: Track? = null

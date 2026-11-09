@@ -1,4 +1,4 @@
-package com.zepinto.resistance
+package com.zepinto.mutiny
 
 import kotlin.random.Random
 import org.junit.Assert.assertEquals
@@ -9,24 +9,24 @@ import org.junit.Test
 
 private fun names(n: Int) = (1..n).map { "P$it" }
 
-/** A game with a known leader and known roles: the first spyCount players are spies. */
-private fun game(n: Int = 5, leader: Int = 0): Game {
+/** A game with a known captain and known roles: the first mutineerCount players are mutineers. */
+private fun game(n: Int = 5, captain: Int = 0): Game {
     val g = Rules.newGame(names(n), Random(1))
-    val spies = Rules.spyCount(n)
-    return g.copy(roles = List(n) { if (it < spies) Role.SPY else Role.RESISTANCE }, leader = leader)
+    val mutineers = Rules.mutineerCount(n)
+    return g.copy(roles = List(n) { if (it < mutineers) Role.MUTINEER else Role.LOYAL }, captain = captain)
 }
 
-/** The first players as a team of the size the current mission needs. */
+/** The first players as a team of the size the current voyage needs. */
 private fun team(g: Game) = (0 until g.teamSize).toList()
 
 class SetupRulesTest {
     @Test
-    fun theNumberOfSpiesFollowsTheOfficialTable() {
-        assertEquals(listOf(2, 2, 3, 3, 3, 4), (5..10).map { Rules.spyCount(it) })
+    fun theNumberOfMutineersFollowsTheTable() {
+        assertEquals(listOf(2, 2, 3, 3, 3, 4), (5..10).map { Rules.mutineerCount(it) })
     }
 
     @Test
-    fun teamSizesFollowTheOfficialTable() {
+    fun teamSizesFollowTheTable() {
         assertEquals(listOf(2, 3, 2, 3, 3), (0..4).map { Rules.teamSize(5, it) })
         assertEquals(listOf(2, 3, 4, 3, 4), (0..4).map { Rules.teamSize(6, it) })
         assertEquals(listOf(2, 3, 3, 4, 4), (0..4).map { Rules.teamSize(7, it) })
@@ -34,21 +34,21 @@ class SetupRulesTest {
     }
 
     @Test
-    fun theFourthMissionNeedsTwoFailsFromSevenPlayers() {
+    fun theFourthVoyageNeedsTwoFailsFromSevenPlayers() {
         for (n in 5..10) for (m in 0..4) {
             val expected = if (n >= 7 && m == 3) 2 else 1
-            assertEquals("n=$n mission=$m", expected, Rules.failsNeeded(n, m))
+            assertEquals("n=$n voyage=$m", expected, Rules.failsNeeded(n, m))
         }
     }
 
     @Test
-    fun aNewGameDealsTheRightSpiesAndStartsAtMissionOne() {
+    fun aNewGameDealsTheRightMutineersAndStartsAtVoyageOne() {
         for (n in 5..10) repeat(20) { seed ->
             val g = Rules.newGame(names(n), Random(seed))
-            assertEquals(Rules.spyCount(n), g.roles.count { it == Role.SPY })
-            assertEquals(n - Rules.spyCount(n), g.roles.count { it == Role.RESISTANCE })
-            assertTrue(g.leader in 0 until n)
-            assertEquals(0, g.mission)
+            assertEquals(Rules.mutineerCount(n), g.roles.count { it == Role.MUTINEER })
+            assertEquals(n - Rules.mutineerCount(n), g.roles.count { it == Role.LOYAL })
+            assertTrue(g.captain in 0 until n)
+            assertEquals(0, g.voyage)
             assertEquals(0, g.rejects)
             assertTrue(g.results.all { it == null })
             assertFalse(g.over)
@@ -71,7 +71,7 @@ class SetupRulesTest {
     @Test
     fun rolesAreShuffledAcrossGames() {
         val roleOfFirst = (0 until 40).map { Rules.newGame(names(5), Random(it)).roles[0] }.toSet()
-        assertEquals(setOf(Role.SPY, Role.RESISTANCE), roleOfFirst)
+        assertEquals(setOf(Role.MUTINEER, Role.LOYAL), roleOfFirst)
     }
 }
 
@@ -86,30 +86,30 @@ class VoteRulesTest {
     }
 
     @Test
-    fun anApprovedTeamWaitsForItsMission() {
+    fun anApprovedTeamWaitsForItsVoyage() {
         val g = game()
         val after = Rules.vote(g, team(g), setOf(0, 1, 2, 3))
         assertEquals(team(g), after.pendingTeam)
         assertEquals(0, after.rejects)
-        assertEquals(g.leader, after.leader) // the leader does not change until the mission is played
+        assertEquals(g.captain, after.captain) // the captain does not change until the voyage is played
         assertEquals(1, after.history.size)
         assertTrue(after.history.single().approved)
     }
 
     @Test
-    fun aRejectedTeamPassesTheLeadershipAndCountsAsARejection() {
-        val g = game(leader = 4)
+    fun aRejectedTeamPassesTheCaptaincyAndCountsAsARejection() {
+        val g = game(captain = 4)
         val after = Rules.vote(g, team(g), setOf(0))
         assertNull(after.pendingTeam)
         assertEquals(1, after.rejects)
-        assertEquals(0, after.leader) // wraps round the table
-        assertEquals(0, after.mission)
+        assertEquals(0, after.captain) // wraps round the table
+        assertEquals(0, after.voyage)
         assertFalse(after.history.single().approved)
         assertEquals(setOf(0), after.history.single().approvers)
     }
 
     @Test
-    fun fiveRejectionsInARowWinTheGameForTheSpies() {
+    fun fiveRejectionsInARowWinTheGameForTheMutineers() {
         var g = game()
         repeat(4) {
             g = Rules.vote(g, team(g), emptySet())
@@ -117,7 +117,7 @@ class VoteRulesTest {
         }
         assertEquals(4, g.rejects)
         g = Rules.vote(g, team(g), emptySet())
-        assertEquals(Side.SPIES, g.winner)
+        assertEquals(Side.MUTINEERS, g.winner)
         assertEquals(WinReason.REJECTIONS, g.winReason)
     }
 
@@ -129,79 +129,79 @@ class VoteRulesTest {
         assertEquals(g, Rules.vote(g, listOf(0, 9), setOf(0, 1, 2)))            // not a player
         assertEquals(g, Rules.vote(g, listOf(0, 1), setOf(0, 1, 7)))            // a voter that does not exist
         val pending = Rules.vote(g, team(g), setOf(0, 1, 2))
-        assertEquals(pending, Rules.vote(pending, team(g), setOf(0, 1, 2)))     // a mission is already waiting
+        assertEquals(pending, Rules.vote(pending, team(g), setOf(0, 1, 2)))     // a voyage is already waiting
     }
 }
 
-class MissionRulesTest {
-    private fun played(g: Game, fails: Int) = Rules.finishMission(Rules.vote(g, team(g), setOf(0, 1, 2, 3)), fails)
+class VoyageRulesTest {
+    private fun played(g: Game, fails: Int) = Rules.finishVoyage(Rules.vote(g, team(g), setOf(0, 1, 2, 3)), fails)
 
     @Test
-    fun onlyASpyCanPlayAFailCard() {
-        assertTrue(Rules.playsFail(Role.SPY, true))
-        assertFalse(Rules.playsFail(Role.SPY, false))
-        assertFalse(Rules.playsFail(Role.RESISTANCE, true))
-        assertFalse(Rules.playsFail(Role.RESISTANCE, false))
+    fun onlyAMutineerCanPlayAFailCard() {
+        assertTrue(Rules.playsFail(Role.MUTINEER, true))
+        assertFalse(Rules.playsFail(Role.MUTINEER, false))
+        assertFalse(Rules.playsFail(Role.LOYAL, true))
+        assertFalse(Rules.playsFail(Role.LOYAL, false))
     }
 
     @Test
-    fun aMissionWithNoFailCardSucceeds() {
+    fun aVoyageWithNoFailCardSucceeds() {
         val after = played(game(), 0)
-        assertEquals(MissionResult.SUCCESS, after.results[0])
-        assertEquals(1, after.mission)
+        assertEquals(VoyageResult.SUCCESS, after.results[0])
+        assertEquals(1, after.voyage)
         assertNull(after.pendingTeam)
         assertEquals(0, after.history.last().fails)
-        assertEquals(MissionResult.SUCCESS, after.history.last().result)
+        assertEquals(VoyageResult.SUCCESS, after.history.last().result)
     }
 
     @Test
-    fun oneFailCardFailsAMissionThatNeedsOne() {
-        assertEquals(MissionResult.FAIL, played(game(), 1).results[0])
+    fun oneFailCardFailsAVoyageThatNeedsOne() {
+        assertEquals(VoyageResult.FAIL, played(game(), 1).results[0])
     }
 
     @Test
-    fun theFourthMissionOfALargeGameNeedsTwoFails() {
+    fun theFourthVoyageOfALargeGameNeedsTwoFails() {
         var g = game(n = 7)
-        g = g.copy(mission = 3, results = listOf(MissionResult.SUCCESS, MissionResult.FAIL, MissionResult.SUCCESS, null, null))
-        val one = Rules.finishMission(Rules.vote(g, team(g), setOf(0, 1, 2, 3)), 1)
-        assertEquals("one fail is not enough", MissionResult.SUCCESS, one.results[3])
-        val two = Rules.finishMission(Rules.vote(g, team(g), setOf(0, 1, 2, 3)), 2)
-        assertEquals(MissionResult.FAIL, two.results[3])
-        // but in a 5 player game the same mission fails with a single card
+        g = g.copy(voyage = 3, results = listOf(VoyageResult.SUCCESS, VoyageResult.FAIL, VoyageResult.SUCCESS, null, null))
+        val one = Rules.finishVoyage(Rules.vote(g, team(g), setOf(0, 1, 2, 3)), 1)
+        assertEquals("one fail is not enough", VoyageResult.SUCCESS, one.results[3])
+        val two = Rules.finishVoyage(Rules.vote(g, team(g), setOf(0, 1, 2, 3)), 2)
+        assertEquals(VoyageResult.FAIL, two.results[3])
+        // but in a 5 player game the same voyage fails with a single card
         var small = game(n = 5)
-        small = small.copy(mission = 3)
-        assertEquals(MissionResult.FAIL, Rules.finishMission(Rules.vote(small, team(small), setOf(0, 1, 2)), 1).results[3])
+        small = small.copy(voyage = 3)
+        assertEquals(VoyageResult.FAIL, Rules.finishVoyage(Rules.vote(small, team(small), setOf(0, 1, 2)), 1).results[3])
     }
 
     @Test
-    fun afterAMissionTheLeadershipPassesAndRejectionsStartAgain() {
-        var g = game(leader = 2)
-        g = Rules.vote(g, team(g), emptySet())             // one rejection, leader 3
+    fun afterAVoyageTheCaptaincyPassesAndRejectionsStartAgain() {
+        var g = game(captain = 2)
+        g = Rules.vote(g, team(g), emptySet())             // one rejection, captain 3
         assertEquals(1, g.rejects)
-        assertEquals(3, g.leader)
+        assertEquals(3, g.captain)
         val after = played(g, 0)
         assertEquals(0, after.rejects)
-        assertEquals(4, after.leader)
+        assertEquals(4, after.captain)
     }
 
     @Test
-    fun threeSuccessfulMissionsWinForTheResistance() {
+    fun threeSuccessfulVoyagesWinForTheLoyal() {
         var g = game()
         repeat(3) {
             assertFalse(g.over)
             g = played(g, 0)
         }
-        assertEquals(Side.RESISTANCE, g.winner)
-        assertEquals(WinReason.MISSIONS, g.winReason)
+        assertEquals(Side.LOYAL, g.winner)
+        assertEquals(WinReason.VOYAGES, g.winReason)
         assertEquals(3, g.successes)
     }
 
     @Test
-    fun threeFailedMissionsWinForTheSpies() {
+    fun threeFailedVoyagesWinForTheMutineers() {
         var g = game()
         repeat(3) { g = played(g, 1) }
-        assertEquals(Side.SPIES, g.winner)
-        assertEquals(WinReason.MISSIONS, g.winReason)
+        assertEquals(Side.MUTINEERS, g.winner)
+        assertEquals(WinReason.VOYAGES, g.winReason)
     }
 
     @Test
@@ -209,19 +209,19 @@ class MissionRulesTest {
         var g = game()
         g = played(g, 0); g = played(g, 1); g = played(g, 0); g = played(g, 1)
         assertFalse("2-2 so far", g.over)
-        assertEquals(4, g.mission)
+        assertEquals(4, g.voyage)
         g = played(g, 1)
-        assertEquals(Side.SPIES, g.winner)
+        assertEquals(Side.MUTINEERS, g.winner)
         assertEquals(3, g.failures)
     }
 
     @Test
     fun nothingHappensOutOfOrderOrAfterTheEnd() {
         val g = game()
-        assertEquals(g, Rules.finishMission(g, 0))                                   // no approved team
+        assertEquals(g, Rules.finishVoyage(g, 0))                                   // no approved team
         val pending = Rules.vote(g, team(g), setOf(0, 1, 2))
-        assertEquals(pending, Rules.finishMission(pending, 9))                        // more fails than players on the team
-        assertEquals(pending, Rules.finishMission(pending, -1))
+        assertEquals(pending, Rules.finishVoyage(pending, 9))                        // more fails than players on the team
+        assertEquals(pending, Rules.finishVoyage(pending, -1))
         var over = game()
         repeat(3) { over = played(over, 0) }
         assertEquals(over, Rules.vote(over, team(over), setOf(0, 1, 2)))
@@ -231,15 +231,15 @@ class MissionRulesTest {
 class SaveRulesTest {
     @Test
     fun aGameInProgressComesBackExactly() {
-        var g = game(n = 7, leader = 3)
+        var g = game(n = 7, captain = 3)
         g = Rules.vote(g, team(g), setOf(0))
         g = Rules.vote(g, team(g), setOf(0, 1, 2, 3))
-        g = Rules.finishMission(g, 1)
+        g = Rules.finishVoyage(g, 1)
         assertEquals(g, GameCodec.load(GameCodec.save(g)))
-        val mid = Rules.vote(game(), team(game()), setOf(0, 1, 2)) // a mission waiting
+        val mid = Rules.vote(game(), team(game()), setOf(0, 1, 2)) // a voyage waiting
         assertEquals(mid, GameCodec.load(GameCodec.save(mid)))
         var done = game()
-        repeat(3) { done = Rules.finishMission(Rules.vote(done, team(done), setOf(0, 1, 2)), 0) }
+        repeat(3) { done = Rules.finishVoyage(Rules.vote(done, team(done), setOf(0, 1, 2)), 0) }
         assertEquals(done, GameCodec.load(GameCodec.save(done)))
     }
 

@@ -1,4 +1,4 @@
-package com.zepinto.resistance
+package com.zepinto.mutiny
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -17,15 +17,15 @@ class StringsTest {
             assertTrue(t.passPhoneTo("Ana").contains("Ana"))
             assertTrue(t.tapToFlip("Ana").contains("Ana"))
             assertTrue(t.voteQuestion("Ana").contains("Ana"))
-            assertTrue(t.missionQuestion("Ana").contains("Ana"))
+            assertTrue(t.voyageQuestion("Ana").contains("Ana"))
             assertTrue(t.imName("Ana").contains("Ana"))
-            assertTrue(t.leaderIs("Ana").contains("Ana"))
-            assertTrue(t.fellowSpies("Ana, Rui").contains("Ana, Rui"))
-            assertTrue(t.missionOf(3).contains("3"))
+            assertTrue(t.captainIs("Ana").contains("Ana"))
+            assertTrue(t.fellowMutineers("Ana, Rui").contains("Ana, Rui"))
+            assertTrue(t.voyageOf(3).contains("3"))
             assertTrue(t.rejectedProposals(4).contains("4"))
             assertTrue(t.failsLine(2, 2).contains("2"))
-            assertNotEquals(t.youAreResistance, t.youAreSpy)
-            assertNotEquals(t.resistanceWins, t.spiesWin)
+            assertNotEquals(t.youAreLoyal, t.youAreMutineer)
+            assertNotEquals(t.loyalWins, t.mutineersWin)
             assertNotEquals(t.voteApproved, t.voteRejected)
             assertNotEquals(t.success, t.fail)
         }

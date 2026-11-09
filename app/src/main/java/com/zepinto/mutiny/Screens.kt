@@ -1,4 +1,4 @@
-package com.zepinto.resistance
+package com.zepinto.mutiny
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.core.Spring
@@ -66,7 +66,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 @Composable
-fun ResistanceApp(vm: GameViewModel = viewModel()) {
+fun MutinyApp(vm: GameViewModel = viewModel()) {
     val state by vm.state.collectAsStateWithLifecycle()
     val t = state.lang.strings
     val owner = LocalLifecycleOwner.current
@@ -122,9 +122,9 @@ fun ResistanceApp(vm: GameViewModel = viewModel()) {
                 Stage.VOTE_PASS -> PassScreen(state, voting = true, onReady = vm::ready)
                 Stage.VOTE_CHOOSE -> ChoiceScreen(state, voting = true, onChoose = { first -> vm.castVote(first) })
                 Stage.VOTE_RESULT -> VoteResultScreen(state, onContinue = vm::afterVote)
-                Stage.MISSION_PASS -> PassScreen(state, voting = false, onReady = vm::ready)
-                Stage.MISSION_CHOOSE -> ChoiceScreen(state, voting = false, onChoose = { first -> vm.playCard(wantsFail = !first) })
-                Stage.MISSION_RESULT -> MissionResultScreen(state, onReveal = vm::revealMissionSound, onContinue = vm::afterMission)
+                Stage.VOYAGE_PASS -> PassScreen(state, voting = false, onReady = vm::ready)
+                Stage.VOYAGE_CHOOSE -> ChoiceScreen(state, voting = false, onChoose = { first -> vm.playCard(wantsFail = !first) })
+                Stage.VOYAGE_RESULT -> VoyageResultScreen(state, onReveal = vm::revealVoyageSound, onContinue = vm::afterVoyage)
                 Stage.GAME_OVER -> if (game != null) GameOverScreen(
                     state = state,
                     onNewGame = vm::newGame,
@@ -224,7 +224,7 @@ private fun SetupScreen(
         val keyboard = WindowInsets.isImeVisible
         Row(verticalAlignment = Alignment.CenterVertically) {
             if (!keyboard) {
-                Mask(Modifier.size(72.dp))
+                Flag(Modifier.size(72.dp))
                 Spacer(Modifier.width(12.dp))
             }
             Column(Modifier.weight(1f)) {
@@ -275,10 +275,10 @@ private fun SetupScreen(
             if (canStart) {
                 Surface(shape = Soft, color = Color.White.copy(alpha = 0.08f), modifier = Modifier.fillMaxWidth()) {
                     Column(Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Text("🕵️ ${t.spiesLine(Rules.spyCount(n), n - Rules.spyCount(n))}", fontWeight = FontWeight.Bold)
+                        Text("🏴‍☠️ ${t.mutineersLine(Rules.mutineerCount(n), n - Rules.mutineerCount(n))}", fontWeight = FontWeight.Bold)
                         Text(t.teamSizesLabel, fontSize = 12.sp, color = Color.White.copy(alpha = 0.6f))
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            for (m in 0 until Rules.MISSIONS) {
+                            for (m in 0 until Rules.VOYAGES) {
                                 Chip("${Rules.teamSize(n, m)}" + if (Rules.failsNeeded(n, m) == 2) "*" else "", Palette.Blue)
                             }
                         }
@@ -435,7 +435,7 @@ private fun CardBackFace(index: Int) {
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Mask(Modifier.size(150.dp), color = Color.White.copy(alpha = 0.9f))
+            Flag(Modifier.size(150.dp), color = Color.White.copy(alpha = 0.9f))
             Spacer(Modifier.height(8.dp))
             Text("?", fontSize = 60.sp, fontWeight = FontWeight.Black, color = Palette.avatar(index))
         }
@@ -446,8 +446,8 @@ private fun CardBackFace(index: Int) {
 @Composable
 private fun RoleFace(game: Game, index: Int) {
     val t = LocalStrings.current
-    val spy = game.roles[index] == Role.SPY
-    val fellows = game.spies.filter { it != index }.map { game.players[it] }
+    val mutineer = game.roles[index] == Role.MUTINEER
+    val fellows = game.mutineers.filter { it != index }.map { game.players[it] }
     Column(
         Modifier
             .fillMaxSize()
@@ -457,16 +457,16 @@ private fun RoleFace(game: Game, index: Int) {
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Text(if (spy) "🕵️" else "✊", fontSize = 64.sp)
+        Text(if (mutineer) "🏴‍☠️" else "⚓", fontSize = 64.sp)
         Spacer(Modifier.height(8.dp))
-        Text(if (spy) t.youAreSpy else t.youAreResistance, fontSize = 40.sp, fontWeight = FontWeight.Black, color = Color.White, textAlign = TextAlign.Center)
+        Text(if (mutineer) t.youAreMutineer else t.youAreLoyal, fontSize = 40.sp, fontWeight = FontWeight.Black, color = Color.White, textAlign = TextAlign.Center)
         Spacer(Modifier.height(10.dp))
-        Text(if (spy) t.spyHint else t.resistanceHint, color = Color.White.copy(alpha = 0.8f), textAlign = TextAlign.Center)
-        if (spy && fellows.isNotEmpty()) {
+        Text(if (mutineer) t.mutineerHint else t.loyalHint, color = Color.White.copy(alpha = 0.8f), textAlign = TextAlign.Center)
+        if (mutineer && fellows.isNotEmpty()) {
             Spacer(Modifier.height(16.dp))
             Surface(shape = Soft, color = Color.Black.copy(alpha = 0.25f)) {
                 Text(
-                    t.fellowSpies(fellows.joinToString(", ")),
+                    t.fellowMutineers(fellows.joinToString(", ")),
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
                     textAlign = TextAlign.Center,

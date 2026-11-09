@@ -1,7 +1,7 @@
 {
   "sfx": {
     "flip": {
-      "prompt": "A single playing card flipped over onto a felt card table: one crisp paper snap followed by a soft bright chime. Clean, close, no reverb.",
+      "prompt": "A single playing card flipped over onto a wooden table: one crisp paper snap followed by a soft bright chime. Clean, close, no reverb.",
       "seconds": 1.0
     },
     "warn": {
@@ -9,46 +9,46 @@
       "seconds": 0.8
     },
     "blip": {
-      "prompt": "One soft muted wooden click, like a single typewriter key pressed gently. Very short, dry.",
+      "prompt": "One soft muted wooden click, like a single wooden peg tapped gently. Very short, dry.",
       "seconds": 0.5,
       "gain": -4
     },
     "approved": {
-      "prompt": "A firm rubber stamp thud on paper followed by a short murmur of agreement from a small group. Approved.",
+      "prompt": "A ship's crew answers together with a hearty 'Aye!', followed by one firm thud of a wooden stamp. Approved.",
       "seconds": 1.5
     },
     "rejected": {
-      "prompt": "A short disappointed group groan followed by a sheet of paper being crumpled.",
+      "prompt": "A small group of sailors grumbling in disappointment, followed by a rope dropped heavily on a wooden deck.",
       "seconds": 1.5
     },
     "success": {
-      "prompt": "Spy mission success: a quick synth whoosh and a bright electronic confirmation chime, like a secure vault unlocking.",
+      "prompt": "A safe voyage: two clear rings of a brass ship's bell, a creak of rigging and a short cheer from the crew.",
       "seconds": 2.0
     },
     "fail": {
-      "prompt": "Spy mission sabotaged: a sharp electric sparking crackle with a short low explosion thump and an alarm blip.",
+      "prompt": "A sabotaged voyage: a sharp crack of splintering wood, a muffled cannon thump and water splashing.",
       "seconds": 2.0
     },
     "win": {
-      "prompt": "A short heroic synth-orchestral fanfare for a rebel victory, with a small crowd cheering.",
+      "prompt": "A short rousing sea-shanty fanfare on fiddle and accordion with a crew cheering 'hooray!', the loyal crew wins.",
       "seconds": 3.5
     },
     "lose": {
-      "prompt": "A dark villain victory sting: a low synth brass stab and an ominous fading drone. The spies win.",
+      "prompt": "A dark pirate victory sting: a low brass stab, a menacing laugh from a few sailors and a creaking ship fading out. The mutineers win.",
       "seconds": 3.5
     }
   },
   "music": {
     "lobby": {
-      "prompt": "Cool 1960s spy thriller lounge music for a game menu: twangy surf guitar, bongos, upright bass and vibraphone. Mysterious and playful, steady mid tempo, no big build-ups or endings, instrumental.",
+      "prompt": "Cheerful sea shanty for a game menu: accordion, fiddle, tin whistle, stomping feet and a light hand drum. Playful and adventurous, steady mid tempo, no big build-ups or endings, instrumental.",
       "seconds": 75
     },
     "table": {
-      "prompt": "Modern spy thriller underscore for a tense board game discussion: pulsing synth bass, muted electric guitar, light electronic percussion. Suspenseful but quiet enough to talk over, steady, no climax, instrumental.",
+      "prompt": "Tense underscore aboard an old sailing ship while the crew argues: low cello drone, a slow plucked double bass, soft creaking timbers and distant waves. Suspicious but quiet enough to talk over, steady, no climax, instrumental.",
       "seconds": 75
     },
-    "mission": {
-      "prompt": "Very tense heist music while secret cards are played: a slow heartbeat kick drum, ticking hi-hat and a low string drone. Suspense held steady, minimal, no climax, instrumental.",
+    "voyage": {
+      "prompt": "Very tense music below deck while secret cards are played: a slow heartbeat drum, a ticking ship's clock and a low string drone with faint creaking wood. Suspense held steady, minimal, no climax, instrumental.",
       "seconds": 60
     }
   }

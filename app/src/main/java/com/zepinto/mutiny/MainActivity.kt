@@ -1,4 +1,4 @@
-package com.zepinto.resistance
+package com.zepinto.mutiny
 
 import android.graphics.Color
 import android.os.Bundle
@@ -34,7 +34,7 @@ class MainActivity : ComponentActivity() {
                     surface = ComposeColor.Black,
                 )
             ) {
-                Surface(Modifier.fillMaxSize(), color = ComposeColor.Black) { ResistanceApp() }
+                Surface(Modifier.fillMaxSize(), color = ComposeColor.Black) { MutinyApp() }
             }
         }
     }

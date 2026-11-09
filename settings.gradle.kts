@@ -12,5 +12,5 @@ dependencyResolutionManagement {
         mavenCentral()
     }
 }
-rootProject.name = "resistance"
+rootProject.name = "mutiny"
 include(":app")
